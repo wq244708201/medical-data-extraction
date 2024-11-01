@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { XCircle } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
@@ -11,9 +11,21 @@ export default function Home() {
   const [columns, setColumns] = useState([]);
   const [selectedColumn, setSelectedColumn] = useState('');
   const [extractionPrompt, setExtractionPrompt] = useState('');
+  const [processingStats, setProcessingStats] = useState({
+    successCount: 0,
+    reviewCount: 0,
+    errorCount: 0,
+  });
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState(null);
   const [processedCount, setProcessedCount] = useState(0);
+  const [displayColumns] = useState([
+    '左侧睾丸尺寸',
+    '右侧睾丸尺寸',
+    '处理状态',
+    '审核原因',
+    '处理时间',
+  ]);
   const [exportFormat, setExportFormat] = useState('xlsx');
   const [optimizedPrompt, setOptimizedPrompt] = useState('');
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -22,9 +34,22 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [isCancelled, setIsCancelled] = useState(false);
+  const [controller, setController] = useState(null);
   const [success, setSuccess] = useState('');
+  useEffect(() => {
+    if (isCancelled) {
+      console.log('处理被取消');
+    }
+  }, [isCancelled]);
   const containsTestisInfo = text => {
-    return /(?:睾丸|阴囊).{0,100}\d+\.?\d*cm/.test(text);
+    if (!text) return false;
+    try {
+      return /(?:睾丸|阴囊).{0,100}\d+\.?\d*cm/.test(text);
+    } catch (error) {
+      console.error('正则匹配错误:', error);
+      return false;
+    }
   };
   const [currentStep, setCurrentStep] = useState(1); // 当前步骤
   const steps = [
@@ -907,64 +932,136 @@ export default function Home() {
           <div className="step-content">
             <h2 className="text-xl font-semibold mb-6">第四步：处理结果</h2>
             {isProcessing ? (
-              <div className="max-w-2xl mx-auto space-y-6">
-                <div className="text-center mb-4">
-                  <div className="inline-flex items-center px-4 py-2 bg-blue-50 rounded-full">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span className="text-blue-700 font-medium">
-                      正在处理数据...
-                    </span>
-                  </div>
-                </div>
-
+              <div className="space-y-6">
                 <div className="bg-white shadow rounded-lg p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-sm font-medium text-gray-700">
-                      处理进度
-                    </span>
-                    <span className="text-sm font-medium text-blue-600">
-                      {processedCount}/{tableData.length}
-                      <span className="text-gray-500 ml-2">
-                        ({Math.round((processedCount / tableData.length) * 100)}
-                        %)
-                      </span>
-                    </span>
+                  {/* 标题与取消按钮 */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">
+                          正在处理数据
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          请耐心等待，处理完成后可查看结果
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (
+                          confirm('确定要取消处理吗？已处理的数据将被保留。')
+                        ) {
+                          if (controller) {
+                            controller.abort(); // 取消所有正在进行的请求
+                            setIsCancelled(true);
+                          }
+                        }
+                      }}
+                      className="px-4 py-2 text-sm text-red-600 hover:text-red-800 font-medium"
+                    >
+                      取消处理
+                    </button>
                   </div>
 
-                  <div className="relative pt-1">
-                    <div className="overflow-hidden h-2 text-xs flex rounded bg-blue-100">
-                      <div
-                        className="transition-all duration-300 ease-out shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600"
-                        style={{
-                          width: `${(processedCount / tableData.length) * 100}%`,
-                        }}
-                      />
+                  {/* 进度条部分 */}
+                  <div className="space-y-4 border-t border-b py-6">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium text-gray-700">
+                        处理进度
+                      </span>
+                      <span className="text-blue-600 font-medium">
+                        {processedCount}/{tableData.length}
+                        <span className="text-gray-500 ml-2">
+                          (
+                          {Math.round(
+                            (processedCount / tableData.length) * 100
+                          )}
+                          %)
+                        </span>
+                      </span>
+                    </div>
+
+                    <div className="relative pt-1">
+                      <div className="overflow-hidden h-2 text-xs flex rounded bg-blue-100">
+                        <div
+                          className="transition-all duration-300 ease-out shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600"
+                          style={{
+                            width: `${(processedCount / tableData.length) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <div>
+                        预计剩余时间：
+                        {Math.ceil(
+                          (tableData.length - processedCount) * 1.5
+                        )}{' '}
+                        秒
+                      </div>
+                      <div>
+                        当前速度：
+                        {(
+                          (processedCount / (processedCount * 1.5)) *
+                          60
+                        ).toFixed(1)}{' '}
+                        条/分钟
+                      </div>
                     </div>
                   </div>
 
-                  <p className="text-xs text-gray-500 mt-2">
-                    预计剩余时间：
-                    {Math.ceil((tableData.length - processedCount) * 1.5)} 秒
-                  </p>
+                  {/* 实时处理结果预览 */}
+                  {results && results.length > 0 && (
+                    <div className="mt-6 bg-white rounded-lg border">
+                      <div className="p-4 border-b">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          最新处理结果（实时预览）
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-1">
+                          显示最新处理的5条数据
+                        </p>
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50 sticky top-0 z-10">
+                            <tr>
+                              {displayColumns.map(column => (
+                                <th
+                                  key={column}
+                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50"
+                                >
+                                  {column}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {results.slice(-5).map((row, index) => (
+                              <tr
+                                key={index}
+                                className={
+                                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                }
+                              >
+                                {displayColumns.map(column => (
+                                  <td
+                                    key={column}
+                                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                  >
+                                    {row[column]}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : results ? (
@@ -1135,7 +1232,7 @@ export default function Home() {
         case 2:
           return !!selectedColumn;
         case 3:
-          return !!extractionPrompt && !isOptimizing; // 添加 isOptimizing 检查
+          return !!extractionPrompt && !isOptimizing;
         default:
           return false;
       }
@@ -1143,21 +1240,24 @@ export default function Home() {
 
     const handleNext = async () => {
       if (currentStep === 3) {
-        await processData();
+        setCurrentStep(4); // 先跳转到第4步
+        processData(); // 然后开始处理
+      } else {
+        setCurrentStep(Math.min(4, currentStep + 1));
       }
-      setCurrentStep(Math.min(4, currentStep + 1));
     };
 
     return (
       <div className="flex justify-between mt-8">
+        {/* 上一步按钮 */}
         <button
           onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
           className={`px-4 py-2 rounded ${
-            currentStep === 1
+            currentStep === 1 || isProcessing
               ? 'bg-gray-300 cursor-not-allowed'
               : 'bg-gray-500 hover:bg-gray-600 text-white'
           }`}
-          disabled={currentStep === 1}
+          disabled={currentStep === 1 || isProcessing}
         >
           上一步
         </button>
@@ -1170,13 +1270,7 @@ export default function Home() {
               : 'bg-blue-500 hover:bg-blue-600 text-white'
           }`}
         >
-          {currentStep === 3
-            ? isProcessing
-              ? '处理中...'
-              : isOptimizing
-                ? '优化中...'
-                : '开始处理'
-            : '下一步'}
+          {currentStep === 3 ? '开始处理' : '下一步'}
         </button>
       </div>
     );
@@ -1358,10 +1452,9 @@ ${userPrompt}
   };
 
   // AI 接口调用函数
-  const callAI = async (text, prompt, retryCount = 3) => {
+  const callAI = async (text, prompt, retryCount = 3, signal) => {
     const processedText = preprocessText(text);
 
-    // 如果文本中没有睾丸相关信息，直接返回需要审核的结果
     if (!containsTestisInfo(processedText)) {
       return {
         leftSize: null,
@@ -1390,13 +1483,12 @@ ${userPrompt}
 
     for (let i = 0; i < retryCount; i++) {
       try {
-        console.log(`开始第 ${i + 1} 次尝试处理数据...`);
+        // 检查是否已取消
+        if (signal?.aborted) {
+          throw new Error('操作已取消');
+        }
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          controller.abort();
-          console.log('请求超时，正在重试...');
-        }, 30000);
+        console.log(`开始第 ${i + 1} 次尝试处理数据...`);
 
         const response = await fetch(API_CONFIG.url, {
           method: 'POST',
@@ -1408,23 +1500,18 @@ ${userPrompt}
               temperature: 0.1,
             },
           }),
-          signal: controller.signal,
+          signal, // 确保传入 signal
         });
 
-        clearTimeout(timeoutId);
-
-        // 详细的响应状态检查
         if (!response.ok) {
           const errorText = await response.text();
           let errorMessage = `API请求失败 (状态码: ${response.status})`;
-
           try {
             const errorData = JSON.parse(errorText);
             errorMessage += `: ${errorData.message || errorText}`;
           } catch {
             errorMessage += `: ${errorText}`;
           }
-
           throw new Error(errorMessage);
         }
 
@@ -1490,20 +1577,27 @@ ${userPrompt}
                 : null,
         };
       } catch (error) {
+        if (signal?.aborted) {
+          throw new Error('操作已取消');
+        }
+
         lastError = error;
         console.error(`第 ${i + 1} 次处理失败:`, error.message);
 
-        // 如果还有重试机会，则等待后重试
         if (i < retryCount - 1) {
-          const waitTime = Math.min(2000 * Math.pow(2, i), 10000); // 指数退避，最多等待10秒
-          console.log(`等待 ${waitTime}ms 后进行第 ${i + 2} 次尝试...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
+          const waitTime = Math.min(2000 * Math.pow(2, i), 10000);
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(resolve, waitTime);
+            signal?.addEventListener('abort', () => {
+              clearTimeout(timeout);
+              reject(new Error('操作已取消'));
+            });
+          });
         }
       }
     }
 
-    // 所有重试都失败后，抛出最后一次的错误
-    throw new Error(`处理失败 (已重试${retryCount}次): ${lastError.message}`);
+    throw lastError;
   };
 
   // 处理文件上传
@@ -1550,35 +1644,35 @@ ${userPrompt}
   };
 
   const processData = async () => {
-    // 添加数据验证
     if (!tableData || tableData.length === 0) {
-      alert('请先上传数据文件');
+      showToast('请先上传数据文件', 'warning');
       return;
     }
     if (!selectedColumn) {
-      alert('请选择要处理的数据列');
+      showToast('请选择要处理的数据列', 'warning');
       return;
     }
     if (!extractionPrompt) {
-      alert('请设置提取规则');
+      showToast('请设置提取规则', 'warning');
       return;
     }
 
-    // 添加处理前确认
-    if (!confirm(`即将处理 ${tableData.length} 条数据，是否继续？`)) {
-      return;
-    }
-
+    // 创建新的 AbortController
+    const newController = new AbortController();
+    setController(newController);
+    setIsCancelled(false);
     setIsProcessing(true);
     setProcessedCount(0);
-    const results = [];
-    const reviewReasons = {
-      尺寸数据不完整: 0,
-      处理错误: 0,
-    };
+    let results = [];
 
     try {
       for (let i = 0; i < tableData.length; i++) {
+        // 每次循环开始检查是否已取消
+        if (newController.signal.aborted) {
+          console.log('处理已被取消');
+          break;
+        }
+
         const row = tableData[i];
         try {
           const text = row[selectedColumn];
@@ -1586,13 +1680,18 @@ ${userPrompt}
             throw new Error('文本内容为空');
           }
 
-          // 更新进度
           setProcessedCount(i);
 
-          // 调用AI进行处理
-          const aiResult = await callAI(text, extractionPrompt);
+          const aiResult = await callAI(
+            text,
+            extractionPrompt,
+            3,
+            newController.signal
+          );
 
-          // 格式化结果
+          // 添加取消检查
+          if (newController.signal.aborted) break;
+
           const formattedResult = {
             ...row,
             左侧睾丸尺寸: aiResult.leftSize || '',
@@ -1602,13 +1701,24 @@ ${userPrompt}
             处理时间: new Date().toLocaleString(),
           };
 
-          if (aiResult.needsReview) {
-            reviewReasons[aiResult.reviewReason] =
-              (reviewReasons[aiResult.reviewReason] || 0) + 1;
-          }
-
           results.push(formattedResult);
+
+          if (!newController.signal.aborted) {
+            setResults([...results]);
+            setProcessedCount(i + 1);
+
+            // 使用可取消的延时
+            await new Promise((resolve, reject) => {
+              const timeoutId = setTimeout(resolve, 1000);
+              newController.signal.addEventListener('abort', () => {
+                clearTimeout(timeoutId);
+                reject(new Error('已取消'));
+              });
+            });
+          }
         } catch (error) {
+          if (newController.signal.aborted) break;
+
           console.error('处理单条数据出错:', error);
           results.push({
             ...row,
@@ -1618,37 +1728,27 @@ ${userPrompt}
             审核原因: error.message,
             处理时间: new Date().toLocaleString(),
           });
-          reviewReasons['处理错误']++;
+
+          if (!newController.signal.aborted) {
+            setResults([...results]);
+          }
         }
-
-        // 更新进度
-        setProcessedCount(i + 1);
-
-        // 添加处理间隔
-        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-
-      setResults(results);
-
-      // 显示处理统计
-      const reviewCount = Object.values(reviewReasons).reduce(
-        (a, b) => a + b,
-        0
-      );
-      alert(
-        `处理完成！\n` +
-          `总数：${results.length} 条\n` +
-          `需审核：${reviewCount} 条 (${((reviewCount / results.length) * 100).toFixed(1)}%)\n` +
-          `审核原因统计：\n${Object.entries(reviewReasons)
-            .filter(([_, count]) => count > 0)
-            .map(([reason, count]) => `${reason}: ${count}条`)
-            .join('\n')}`
-      );
     } catch (error) {
       console.error('批量处理出错:', error);
-      alert('处理出错：' + error.message);
+      if (!newController.signal.aborted) {
+        showToast('处理出错：' + error.message, 'error');
+      }
     } finally {
       setIsProcessing(false);
+      if (newController.signal.aborted) {
+        showToast('已取消处理', 'warning');
+        setProcessedCount(results.length);
+      } else {
+        showToast('处理完成', 'success');
+      }
+      setIsCancelled(false);
+      setController(null);
     }
   };
 
@@ -1676,7 +1776,7 @@ ${userPrompt}
               <h1 className="text-3xl font-bold text-gray-900">
                 MediData AI
                 <span className="ml-2 text-sm font-normal text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                  医数智能 v1.0
+                  医数智能 v1.2.0
                 </span>
               </h1>
               <p className="text-gray-600 mt-1">智能医疗数据提取与分析平台</p>
@@ -1719,368 +1819,4 @@ ${userPrompt}
       </div>
     </main>
   );
-  {
-    /* 文件上传区域 */
-  }
-  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-    <input
-      type="file"
-      accept=".xlsx,.xls"
-      onChange={handleFileUpload}
-      className="hidden"
-      id="fileInput"
-    />
-    <label
-      htmlFor="fileInput"
-      className="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-    >
-      选择Excel文件
-    </label>
-    {file && <p className="mt-2 text-gray-600">已选择文件：{file.name}</p>}
-  </div>;
-  {
-    /* 数据预览 */
-  }
-  {
-    tableData && (
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-4">数据预览（前5行）</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full border">
-            <thead>
-              <tr>
-                {columns.map(column => (
-                  <th key={column} className="border px-4 py-2 bg-gray-50">
-                    {column}
-                  </th>
-                ))}
-                <th className="border px-4 py-2 bg-gray-50">左侧睾丸尺寸</th>
-                <th className="border px-4 py-2 bg-gray-50">右侧睾丸尺寸</th>
-                <th className="border px-4 py-2 bg-gray-50">处理状态</th>
-                <th className="border px-4 py-2 bg-gray-50">审核原因</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableData.slice(0, 5).map((row, index) => (
-                <tr key={index}>
-                  {columns.map(column => (
-                    <td key={column} className="border px-4 py-2">
-                      {row[column]}
-                    </td>
-                  ))}
-                  <td className="border px-4 py-2">{row.左侧睾丸尺寸}</td>
-                  <td className="border px-4 py-2">{row.右侧睾丸尺寸}</td>
-                  <td className="border px-4 py-2">
-                    <span
-                      className={`${
-                        row.处理状态 === '成功'
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                      }`}
-                    >
-                      {row.处理状态}
-                    </span>
-                  </td>
-                  <td className="border px-4 py-2">{row.审核原因}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
-  {
-    /* 选择处理列 */
-  }
-  {
-    tableData && (
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-4">选择要处理的列</h2>
-        <select
-          value={selectedColumn}
-          onChange={e => setSelectedColumn(e.target.value)}
-          className="w-full border rounded px-4 py-2"
-        >
-          <option value="">请选择</option>
-          {columns.map(column => (
-            <option key={column} value={column}>
-              {column}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  }
-  {
-    /* 提取规则输入 */
-  }
-  {
-    selectedColumn && (
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-4">设置提取规则</h2>
-        <div className="space-y-4">
-          {/* 基础规则输入 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              基础规则描述
-            </label>
-            <textarea
-              value={extractionPrompt}
-              onChange={e => setExtractionPrompt(e.target.value)}
-              placeholder="请简单描述需要提取的信息，例如：提取左右睾丸的尺寸"
-              className="w-full border rounded px-4 py-2 h-20"
-            />
-          </div>
-
-          {/* 提示词模板选择 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              选择预设模板
-            </label>
-            <select
-              onChange={e => {
-                if (e.target.value) {
-                  setExtractionPrompt(e.target.value);
-                }
-              }}
-              className="w-full border rounded px-4 py-2 mb-4"
-            >
-              <option value="">选择预设模板</option>
-              <option
-                value={`你是一位超声科主任医师，请从以下超声检查报告中提取左右睾丸的具体尺寸信息。
-
-要求：
-1. 仅提取睾丸本身的尺寸数据
-2. 每个睾丸的尺寸应包含三个维度（长×前后径×宽）
-3. 数据格式示例：3.5cm×2.0cm×2.3cm
-4. 如果找不到完整的三维尺寸数据，请回答"未找到完整尺寸信息"
-
-请按以下格式输出：
-左侧睾丸：[尺寸数据]
-右侧睾丸：[尺寸数据]`}
-              >
-                模板1: 基础提取模板
-              </option>
-              <option
-                value={`作为超声科医师，请仔细分析以下超声检查报告，专注提取睾丸尺寸信息：
-
-提取要求：
-1. 严格筛选，仅提取睾丸本体的尺寸数据
-2. 必须包含三维数据：长度×前后径×宽度（单位：cm）
-3. 如遇到多组数据，优先选择描述睾丸实质的完整测量值
-4. 确保数字和单位的完整性，例如"3.5cm×2.1cm×1.8cm"
-5. 如发现数据不完整或可疑，标注"需要复查"
-
-输出格式：
-左侧睾丸：[三维尺寸]
-右侧睾丸：[三维尺寸]`}
-              >
-                模板2: 严格提取模板
-              </option>
-              <option
-                value={`请作为超声科专家，从超声检查报告中精确提取睾丸测量数据：
-
-关键要求：
-1. 定位标准：
-   - 查找"睾丸"、"双侧睾丸"等关键词
-   - 识别相关测量数据段落
-2. 数据要求：
-   - 提取完整的三维数据（长×前后径×宽）
-   - 确保单位为cm
-   - 数据格式示例：4.2cm×2.1cm×1.9cm
-3. 特殊情况处理：
-   - 如遇不完整数据→标注"数据不完整"
-   - 发现异常格式→标注"格式异常"
-4. 验证步骤：
-   - 确认数据完整性
-   - 检查单位一致性
-   - 核实数值合理性
-
-请按如下格式输出：
-左侧睾丸：[尺寸]
-右侧睾丸：[尺寸]`}
-              >
-                模板3: 专业提取模板
-              </option>
-            </select>
-          </div>
-
-          {/* AI优化按钮 */}
-          <div className="flex space-x-4">
-            <button
-              onClick={async () => {
-                try {
-                  if (!extractionPrompt.trim()) {
-                    alert('请先输入基础规则描述或选择模板');
-                    return;
-                  }
-                  const optimized = await optimizePrompt(extractionPrompt);
-                  setOptimizedPrompt(optimized);
-                } catch (error) {
-                  console.error('优化失败:', error);
-                  alert(error.message || '优化失败，请重试');
-                }
-              }}
-              disabled={!extractionPrompt || isOptimizing}
-              className={`${
-                isOptimizing || !extractionPrompt
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-500 hover:bg-blue-600'
-              } text-white px-4 py-2 rounded transition-colors flex-1`}
-            >
-              {isOptimizing ? '优化中...' : '优化提取规则'}
-            </button>
-          </div>
-
-          {/* 优化后的提示词编辑器 */}
-          {optimizedPrompt && (
-            <div className="mt-4">
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  优化后的提取规则（可编辑）
-                </label>
-                <button
-                  onClick={() => {
-                    setExtractionPrompt(optimizedPrompt);
-                  }}
-                  className="text-xs text-blue-600 hover:text-blue-800"
-                >
-                  使用此规则
-                </button>
-              </div>
-              <textarea
-                value={optimizedPrompt}
-                onChange={e => setOptimizedPrompt(e.target.value)}
-                className="w-full border rounded p-4 text-sm min-h-[200px] font-mono"
-                placeholder="优化后的提取规则将显示在这里，您可以直接编辑"
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-  {
-    /* 优化后的提示词显示 */
-  }
-  {
-    optimizedPrompt && (
-      <div className="mt-4">
-        <div className="flex justify-between items-center mb-2">
-          <label className="block text-sm font-medium text-gray-700">
-            优化后的提取规则
-          </label>
-          <button
-            onClick={() => {
-              setExtractionPrompt(optimizedPrompt);
-            }}
-            className="text-xs text-blue-600 hover:text-blue-800"
-          >
-            使用此规则
-          </button>
-        </div>
-        <div className="bg-gray-50 rounded p-4 text-sm border border-gray-200">
-          <pre className="whitespace-pre-wrap">{optimizedPrompt}</pre>
-        </div>
-      </div>
-    );
-  }
-  {
-    /* 开始处理按钮 */
-  }
-  {
-    selectedColumn && extractionPrompt && (
-      <div className="mt-4">
-        <button
-          onClick={processData}
-          disabled={isProcessing}
-          className={`${
-            isProcessing
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-500 hover:bg-blue-600'
-          } text-white px-6 py-2 rounded transition-colors`}
-        >
-          {isProcessing ? '处理中...' : '开始处理'}
-        </button>
-        {isProcessing && (
-          <div className="mt-4 bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                <span className="font-medium text-gray-900">处理中...</span>
-              </div>
-              <span className="text-sm font-medium text-blue-600">
-                {processedCount}/{tableData.length}
-                <span className="text-gray-500 ml-2">
-                  ({Math.round((processedCount / tableData.length) * 100)}%)
-                </span>
-              </span>
-            </div>
-
-            <div className="relative pt-1">
-              <div className="overflow-hidden h-2 text-xs flex rounded bg-blue-50">
-                <div
-                  className="transition-all duration-300 ease-out shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-500 to-blue-600"
-                  style={{
-                    width: `${(processedCount / tableData.length) * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 flex justify-between text-xs text-gray-500">
-              <div>
-                预计剩余时间：
-                {Math.ceil((tableData.length - processedCount) * 1.5)} 秒
-              </div>
-              <div>
-                平均速度：
-                {((processedCount / (processedCount * 1.5)) * 60).toFixed(
-                  1
-                )}{' '}
-                条/分钟
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-  {
-    results && results.length > 0 && (
-      <div className="mt-4 flex justify-end">
-        <button
-          onClick={() => {
-            const ws = XLSX.utils.json_to_sheet(results);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, '提取结果');
-            XLSX.writeFile(wb, '医疗数据提取结果.xlsx');
-          }}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-        >
-          导出结果
-        </button>
-      </div>
-    );
-  }
 }
