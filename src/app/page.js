@@ -1,12 +1,24 @@
 'use client';
+import { useAuth, RedirectToSignIn } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { XCircle } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
+import { UserButton } from '@/components/auth/UserButton';
 
 export default function Home() {
+  const { isLoaded, userId } = useAuth();
   const { showToast } = useToast();
   const [file, setFile] = useState(null);
+
+  // 添加身份验证检查
+  if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
+
+  if (!userId) {
+    return <RedirectToSignIn />;
+  }
   const [tableData, setTableData] = useState(null);
   const [columns, setColumns] = useState([]);
   const [selectedColumn, setSelectedColumn] = useState('');
@@ -1754,6 +1766,9 @@ ${userPrompt}
 
   return (
     <main className="min-h-screen p-8">
+      <div className="absolute top-4 right-4">
+        <UserButton />
+      </div>
       <div className="max-w-6xl mx-auto">
         {/* 标题区域 */}
         <div className="text-center mb-12">
