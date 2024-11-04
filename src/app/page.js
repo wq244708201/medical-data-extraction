@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { XCircle } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
-import { UserButton } from '@/components/auth/UserButton';
+import { UserButton } from '../components/auth/UserButton';
 
 export default function Home() {
   const { isLoaded, userId } = useAuth();

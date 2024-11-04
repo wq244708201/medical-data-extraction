@@ -1,3 +1,5 @@
+'use client';
+
 import { UserButton as ClerkUserButton } from '@clerk/nextjs';
 
 export function UserButton() {
@@ -5,12 +7,11 @@ export function UserButton() {
     <ClerkUserButton
       appearance={{
         elements: {
-          userButtonBox: 'hover:opacity-80 transition-opacity',
-          userButtonTrigger: 'rounded-full',
           userButtonAvatarBox: 'w-10 h-10',
+          userButtonTrigger:
+            'focus:outline-none focus:ring-2 focus:ring-blue-500',
         },
       }}
-      fallbackRedirectUrl="/auth/sign-in"
     />
   );
 }

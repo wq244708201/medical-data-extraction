@@ -18,7 +18,29 @@ const geistMono = localFont({
 
 export default function RootLayout({ children }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      localization={{
+        locale: 'zh-CN',
+        signIn: {
+          title: '登录',
+          subtitle: '继续使用您的账号',
+        },
+        signUp: {
+          title: '注册',
+          subtitle: '创建您的账号',
+        },
+      }}
+      appearance={{
+        layout: {
+          socialButtonsPlacement: 'top',
+        },
+        elements: {
+          rootBox: 'mx-auto',
+          card: 'shadow-md',
+          formButtonPrimary: 'bg-blue-500 hover:bg-blue-600 text-white',
+        },
+      }}
+    >
       <html lang="zh">
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}

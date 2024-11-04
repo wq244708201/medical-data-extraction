@@ -1,13 +1,27 @@
 import { authMiddleware } from '@clerk/nextjs';
 
 export default authMiddleware({
-  // 公开路由配置
-  publicRoutes: ['/', '/auth/sign-in', '/auth/sign-up', '/api/public'],
-
-  // 忽略的路由
-  ignoredRoutes: ['/_next/static', '/favicon.ico', '/api/public'],
+  publicRoutes: [
+    '/',
+    '/sign-in',
+    '/sign-up',
+    '/api/public',
+    '/api/webhook',
+    '/auth/sign-in',
+    '/auth/sign-up',
+    '/auth/sign-in/sso-callback',
+    '/auth/sign-up/sso-callback',
+    '/auth/sign-in/sso-callback/google',
+    '/auth/sign-up/sso-callback/google',
+  ],
+  ignoredRoutes: [
+    '/_next/static',
+    '/favicon.ico',
+    '/api/public',
+    '/api/webhook',
+  ],
 });
 
 export const config = {
-  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
+  matcher: ['/((?!.*\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
 };
