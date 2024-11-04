@@ -1,72 +1,43 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async rewrites() {
+  // 移除 experimental.appDir 配置
+  headers() {
     return [
       {
-        source: '/api/:path*',
-        destination: 'https://dashscope.aliyuncs.com/api/:path*',
-      },
-    ];
-  },
-  async headers() {
-    return [
-      {
-        // API 路由的 headers
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,OPTIONS' },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value:
-              'Content-Type, Authorization, X-DashScope-AccessKeyId, X-DashScope-AccessKeySecret',
-          },
-        ],
-      },
-      {
-        // 所有路由的安全 headers
         source: '/:path*',
         headers: [
-          // 安全相关的 headers
-          { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=31536000; includeSubDomains',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'Set-Cookie',
-            value:
-              '__Host-next-auth.csrf-token=*; Path=/; Secure; HttpOnly; SameSite=Lax',
-          },
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.clerk.accounts.dev",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' https: data:",
-              "frame-src 'self' https://accounts.google.com",
-              "connect-src 'self' https://accounts.google.com https://*.clerk.accounts.dev",
+              "img-src 'self' https://accounts.google.com data: https://*.clerk.accounts.dev https://*.clerk.com https://img.clerk.com",
               "font-src 'self' data:",
-              "object-src 'none'",
-              "base-uri 'self'",
+              "frame-src 'self' https://accounts.google.com https://*.clerk.accounts.dev",
+              "connect-src 'self' https://accounts.google.com https://*.clerk.accounts.dev",
+              "worker-src 'self' blob:",
               "form-action 'self'",
+              "base-uri 'self'",
               "frame-ancestors 'none'",
+              'block-all-mixed-content',
               'upgrade-insecure-requests',
             ].join('; '),
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
           },
         ],
       },
     ];
   },
-  // 确保图片域名白名单
   images: {
-    domains: ['accounts.google.com', 'clerk.accounts.dev'],
+    domains: ['accounts.google.com', 'img.clerk.com', 'images.clerk.dev'],
   },
 };
 

@@ -1,12 +1,16 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
+/* 主题颜色变量 */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-geist-sans: '';
+  --font-geist-mono: '';
 }
 
+/* 暗色主题 */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -14,8 +18,28 @@
   }
 }
 
+/* 基础样式 */
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Geist Mono 字体支持 */
+code,
+pre,
+kbd {
+  font-family: var(--font-geist-mono), monospace;
+}
+
+/* Clerk UI 元素样式 */
+.cl-rootBox {
+  --font-scale: 1;
+  --font-family: var(--font-geist-sans);
+}
+
+/* 文本渲染优化 */
+.antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

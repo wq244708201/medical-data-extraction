@@ -1,26 +1,40 @@
 'use client';
+
 import { useAuth, RedirectToSignIn } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { XCircle } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
 import { UserButton } from '../components/auth/UserButton';
+const containsTestisInfo = text => {
+  if (!text) return false;
+  try {
+    return /(?:睾丸|阴囊).{0,100}\d+\.?\d*cm/.test(text);
+  } catch (error) {
+    console.error('正则匹配错误:', error);
+    return false;
+  }
+};
 
 export default function Home() {
+  // 1. 认证相关 hooks
   const { isLoaded, userId } = useAuth();
   const { showToast } = useToast();
+
+  // 2. 文件和数据状态
   const [file, setFile] = useState(null);
-
-  // 添加身份验证检查
-  if (!isLoaded) {
-    return <div>Loading...</div>;
-  }
-
-  if (!userId) {
-    return <RedirectToSignIn />;
-  }
   const [tableData, setTableData] = useState(null);
   const [columns, setColumns] = useState([]);
+
+  // 3. UI 状态管理 - 步骤控制
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // 4. 数据处理状态
   const [selectedColumn, setSelectedColumn] = useState('');
   const [extractionPrompt, setExtractionPrompt] = useState('');
   const [processingStats, setProcessingStats] = useState({
@@ -28,7 +42,6 @@ export default function Home() {
     reviewCount: 0,
     errorCount: 0,
   });
-  const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState(null);
   const [processedCount, setProcessedCount] = useState(0);
   const [displayColumns] = useState([
@@ -38,32 +51,37 @@ export default function Home() {
     '审核原因',
     '处理时间',
   ]);
-  const [exportFormat, setExportFormat] = useState('xlsx');
-  const [optimizedPrompt, setOptimizedPrompt] = useState('');
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDragActive, setIsDragActive] = useState(false);
+
+  // 5. 其他状态
   const [error, setError] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState(null);
   const [isCancelled, setIsCancelled] = useState(false);
   const [controller, setController] = useState(null);
   const [success, setSuccess] = useState('');
+  const [exportFormat] = useState('xlsx');
+  const [optimizedPrompt, setOptimizedPrompt] = useState('');
+
+  // 6. 副作用处理
   useEffect(() => {
     if (isCancelled) {
       console.log('处理被取消');
     }
   }, [isCancelled]);
-  const containsTestisInfo = text => {
-    if (!text) return false;
-    try {
-      return /(?:睾丸|阴囊).{0,100}\d+\.?\d*cm/.test(text);
-    } catch (error) {
-      console.error('正则匹配错误:', error);
-      return false;
-    }
-  };
-  const [currentStep, setCurrentStep] = useState(1); // 当前步骤
+
+  // 7. 认证状态检查
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return <RedirectToSignIn />;
+  }
+
+  // 定义步骤配置
   const steps = [
     {
       id: 1,
