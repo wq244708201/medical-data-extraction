@@ -18,7 +18,7 @@ export default function Toast({ message, type = 'info', onClose }) {
           onClick={onClose}
           className="ml-4 text-white hover:text-gray-200"
         >
-          ×
+          ✕
         </button>
       </div>
     </div>

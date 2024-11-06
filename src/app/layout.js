@@ -1,9 +1,11 @@
+'use client';
+
 import { ClerkProvider } from '@clerk/nextjs';
 import localFont from 'next/font/local';
-import { ToastProvider } from './contexts/ToastContext';
+import { ToastProvider } from '../contexts/ToastContext';
 import './globals.css';
 
-// 字体配置
+// 保持原有的字体配置
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
   variable: '--font-geist-sans',
@@ -33,17 +35,17 @@ export default function RootLayout({ children }) {
               card: 'shadow-md',
               formButtonPrimary: 'bg-blue-500 hover:bg-blue-600 text-white',
             },
-          }}
-          localization={{
-            locale: 'zh-CN',
-            socialButtonsBlockButton: '使用 {{provider}} 账号登录',
-            signIn: {
-              title: '登录',
-              subtitle: '继续使用你的账号',
-            },
-            signUp: {
-              title: '注册',
-              subtitle: '创建你的账号',
+            localization: {
+              locale: 'zh-CN',
+              socialButtonsBlockButton: '使用 {{provider}} 账号登录',
+              signIn: {
+                title: '登录',
+                subtitle: '继续使用所有功能号',
+              },
+              signUp: {
+                title: '注册',
+                subtitle: '创建你的账号',
+              },
             },
           }}
         >

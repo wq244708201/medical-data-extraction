@@ -19,8 +19,8 @@ export default function SignInPage() {
           path="/auth/sign-in"
           routing="path"
           signUpUrl="/auth/sign-up"
-          redirectUrl="/"
-          afterSignInUrl="/"
+          redirectUrl="/dashboard"
+          afterSignInUrl="/dashboard"
           localization={{
             signIn: {
               title: '登录账号',
