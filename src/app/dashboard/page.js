@@ -1354,14 +1354,20 @@ export default function Home() {
 
   // API 配置
   const API_CONFIG = {
-    url: '/api/v1/services/aigc/text-generation/generation',
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
     headers: {
       Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`,
       'Content-Type': 'application/json',
-      'X-DashScope-AccessKeyId': process.env.NEXT_PUBLIC_ACCESS_KEY_ID,
-      'X-DashScope-AccessKeySecret': process.env.NEXT_PUBLIC_ACCESS_KEY_SECRET,
     },
   };
+
+  // 添加调试日志
+  console.log('API Configuration:', {
+    url: API_CONFIG.url,
+    hasApiKey: !!process.env.NEXT_PUBLIC_API_KEY,
+    hasAccessKeyId: !!process.env.NEXT_PUBLIC_ACCESS_KEY_ID,
+    hasAccessKeySecret: !!process.env.NEXT_PUBLIC_ACCESS_KEY_SECRET,
+  });
 
   // 打印完整配置（隐藏敏感信息）
   console.log('API配置:', {
@@ -1401,7 +1407,7 @@ export default function Home() {
     let retryCount = 0;
 
     try {
-      setIsOptimizing(true); // 新增：开始优化时设置状态
+      setIsOptimizing(true);
 
       const makeRequest = async () => {
         try {
@@ -1411,9 +1417,11 @@ export default function Home() {
             headers: API_CONFIG.headers,
             body: JSON.stringify({
               model: 'qwen-turbo',
-              input: {
-                prompt: `作为一位 AI 提示词专家，请将以下用户输入的提取规则优化成一个详细的、结构化的提示词。
-              
+              messages: [
+                {
+                  role: 'user',
+                  content: `作为一位 AI 提示词专家，请将以下用户输入的提取规则优化成一个详细的、结构化的提示词。
+            
 用户输入的规则：
 ${userPrompt}
 
@@ -1427,8 +1435,8 @@ ${userPrompt}
 ===提示词开始===
 [优化后的提示词内容]
 ===提示词结束===`,
-                temperature: 0.1,
-              },
+                },
+              ],
             }),
           });
 
@@ -1443,11 +1451,11 @@ ${userPrompt}
           const result = await response.json();
           console.log('API响应成功:', result);
 
-          if (!result.output?.text) {
+          if (!result.choices?.[0]?.message?.content) {
             throw new Error('API响应格式不正确');
           }
 
-          return result.output.text;
+          return result.choices[0].message.content;
         } catch (error) {
           console.error(
             `API调用出错 (尝试 ${retryCount + 1}/${maxRetries}):`,
@@ -1469,15 +1477,14 @@ ${userPrompt}
           if (retryCount === maxRetries) {
             throw error;
           }
-          const waitTime = 1000 * retryCount;
-          console.log(`等待 ${waitTime}ms 后重试...`);
+          const waitTime = 1000 * Math.pow(2, retryCount); // 修改这里：使用 retryCount 而不是 i
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
     } catch (error) {
       throw new Error(`提示词优化失败: ${error.message}`);
     } finally {
-      setIsOptimizing(false); // 新增：完成时重置状态
+      setIsOptimizing(false);
     }
   };
 
@@ -1494,7 +1501,6 @@ ${userPrompt}
       };
     }
 
-    // 构建默认的 AI 提示词（如果用户没有提供自定义提示词）
     const defaultPrompt = `
 你是一位超声科主任医师，从以下超声检查报告文案中提取左右睾丸的具体尺寸信息。请注意以下几点：
 1. 只提取睾丸本身的尺寸，不要提取其他结构（如无回声区）的尺寸。
@@ -1506,14 +1512,13 @@ ${userPrompt}
 请按以下格式回答：
 左侧睾丸：[尺寸]
 右侧睾丸：[尺寸]
-  `.trim();
+`.trim();
 
     const finalPrompt = prompt || defaultPrompt;
     let lastError = null;
 
     for (let i = 0; i < retryCount; i++) {
       try {
-        // 检查是否已取消
         if (signal?.aborted) {
           throw new Error('操作已取消');
         }
@@ -1525,12 +1530,14 @@ ${userPrompt}
           headers: API_CONFIG.headers,
           body: JSON.stringify({
             model: 'qwen-turbo',
-            input: {
-              prompt: prompt + `\n\n医疗报告：\n${processedText}`,
-              temperature: 0.1,
-            },
+            messages: [
+              {
+                role: 'user',
+                content: finalPrompt + `\n\n医疗报告：\n${processedText}`,
+              },
+            ],
           }),
-          signal, // 确保传入 signal
+          signal,
         });
 
         if (!response.ok) {
@@ -1547,14 +1554,12 @@ ${userPrompt}
 
         const apiResponse = await response.json();
 
-        // 验证 API 响应格式
-        if (!apiResponse.output?.text) {
+        if (!apiResponse.choices?.[0]?.message?.content) {
           throw new Error('API响应格式不正确: 缺少必要的输出数据');
         }
 
-        const aiResponse = apiResponse.output.text;
+        const aiResponse = apiResponse.choices[0].message.content;
 
-        // 提取尺寸数据并验证格式
         const leftMatch = aiResponse.match(/左侧睾丸[：:]\s*([^\n]+)/);
         const rightMatch = aiResponse.match(/右侧睾丸[：:]\s*([^\n]+)/);
 
@@ -1571,7 +1576,6 @@ ${userPrompt}
               .replace(/none|未找到睾丸尺寸信息/i, '')
           : null;
 
-        // 验证尺寸格式
         const validateSize = size => {
           if (!size) return false;
           const parts = size.split('×');
@@ -1581,7 +1585,6 @@ ${userPrompt}
           );
         };
 
-        // 添加结果验证日志
         console.log('数据处理结果:', {
           leftSize,
           rightSize,
