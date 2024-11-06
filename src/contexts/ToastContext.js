@@ -1,6 +1,6 @@
 'use client';
 import React, { createContext, useContext, useState } from 'react';
-import Toast from '/src/components/ui/toast';
+import { Toast } from '../components/ui/toast';
 
 // 创建 Context
 export const ToastContext = createContext({
