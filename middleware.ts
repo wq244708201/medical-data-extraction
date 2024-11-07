@@ -34,21 +34,22 @@ export const middleware = authMiddleware({
     response.headers.set(
       'Content-Security-Policy',
       `
-        default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://clerk.com https://accounts.google.com;
-        style-src 'self' 'unsafe-inline';
-        img-src 'self' blob: data: https://*.clerk.com;
-        font-src 'self';
-        frame-src 'self' https://*.clerk.com https://accounts.google.com;
-        connect-src 'self' https://*.clerk.com https://accounts.google.com https://api.clerk.dev https://*.allyncs.com https://dashscope.aliyuncs.com wss: ws: https://accounts.google.com https://*.clerk.accounts.dev http://localhost:* https://localhost:*;
-        object-src 'none';
-        base-uri 'self';
-        form-action 'self';
-        frame-ancestors 'none';
-      `
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https: 'nonce-${nonce}';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data: https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc;
+    font-src 'self';
+    connect-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.turnstile.com;
+    frame-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.turnstile.com;
+    form-action 'self';
+    frame-ancestors 'none';
+  `
         .replace(/\s{2,}/g, ' ')
         .trim()
     );
+
+    // 将 nonce 值添加到请求头中
+    response.headers.set('x-nonce', nonce);
 
     // 特殊处理：在注册页面进过谷歌认证，登录后已存在用户
     if (auth.userId && isSignUpPage && isAuthCallback) {

@@ -16,7 +16,11 @@ const geistMono = localFont({
   variable: '--font-geist-mono',
 });
 
+import { headers } from 'next/headers';
+
 export default function RootLayout({ children }) {
+  const nonce = headers().get('x-nonce');
+
   return (
     <html lang="zh">
       <head>
@@ -48,6 +52,7 @@ export default function RootLayout({ children }) {
               },
             },
           }}
+          scriptNonce={nonce}
         >
           <ToastProvider>{children}</ToastProvider>
         </ClerkProvider>
