@@ -1,8 +1,8 @@
 import { authMiddleware } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
 
-export default authMiddleware({
-  // 公共路由配置 - 无需登录即可访问
+export const middleware = authMiddleware({
+  // 公共路由配置 - 无需登录即可访问的路由
   publicRoutes: [
     '/',
     '/about',
@@ -20,21 +20,13 @@ export default authMiddleware({
     '/api/ai',
   ],
 
-  // 忽略的路由 - 完全跳过中间件检查
-  ignoredRoutes: [
-    '/((?!api|trpc))/_next/static/(.*)',
-    '/favicon.ico',
-    '/fonts/(.*)',
-    '/api/ai',
-  ],
-
-  // 中间件处理函数
+  // 需要登录才能访问的路由
   afterAuth(auth, req) {
     // 获取请求URL和路径信息
     const requestUrl = new URL(req.url);
     const isAuthPage = requestUrl.pathname.startsWith('/auth/');
     const isSignUpPage = requestUrl.pathname.startsWith('/auth/sign-up');
-    const isOAuthCallback = requestUrl.pathname.includes('/sso-callback');
+    const isAuthCallback = requestUrl.pathname.includes('/sso-callback');
     const isHomePage = requestUrl.pathname === '/';
 
     // 设置 CSP 头
@@ -66,13 +58,13 @@ export default authMiddleware({
         .trim()
     );
 
-    // 特别处理：在注册页面通过 OAuth 登录的已存在用户
-    if (auth.userId && isSignUpPage && isOAuthCallback) {
+    // 特别处理：在注册页面通过 OAuth, 登录时已存在用户
+    if (auth.userId && isSignUpPage && isAuthCallback) {
       const dashboard = new URL('/dashboard', req.url);
       return NextResponse.redirect(dashboard);
     }
 
-    // 用户未登录且访问需要认证的页面时，重定向到登录页面
+    // 用户未登录且访问的路需要认证的路径，重定向到登录页面
     if (!auth.userId && !auth.isPublicRoute) {
       const signInUrl = new URL('/auth/sign-in', req.url);
       signInUrl.searchParams.set('redirect_url', requestUrl.href);
@@ -87,14 +79,22 @@ export default authMiddleware({
 
     return response;
   },
+
+  // 忽略的路由 - 完全跳过中间件检查
+  ignoredRoutes: [
+    '/(((?!api|trpc))/_next/static/(.*)',
+    '/favicon.ico',
+    '/fonts/(.*)',
+    '/api/ai',
+  ],
 });
 
-// 路由匹配器配置
+// 路由匹配配置
 export const config = {
   matcher: [
-    // 配置所有路由，除了以下情况：
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
-    // 匹配 API 路由
+    // 配置所有路由, 除了以下两类:
+    '/((?!api_next/static|next/image|favicon.ico|public).*)',
+    // 包含 API 路由
     '/api/(.*)',
   ],
 };
