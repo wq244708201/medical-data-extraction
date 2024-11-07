@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 删除原有注释行
-  // 测试配置
   experimental: {
     scrollRestoration: true,
   },
@@ -14,24 +12,25 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.clerk.accounts.dev https://clerk.com",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.clerk.accounts.dev https://clerk.com https://clerk.jingshen.cc",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://*.clerk.com https://img.clerk.com https://images.clerk.dev https://clerk.jingshen.cc",
-              "img-src 'self' data: blob: https://*.clerk.com https://img.clerk.com https://images.clerk.dev",
-              "frame-src 'self' https://accounts.google.com https://*.clerk.accounts.dev https://clerk.jingshen.cc",
-              "frame-src 'self' https://accounts.google.com https://*.clerk.accounts.dev",
-              "connect-src 'self' https://accounts.google.com https://*.clerk.accounts.dev https://clerk.com",
-              "connect-src 'self' https://accounts.google.com https://*.clerk.accounts.dev https://clerk.com https://clerk.jingshen.cc",
-              "form-action 'self'",
-              "base-uri 'self'",
-              "font-src 'self' data:",
-              "media-src 'self'",
-              "worker-src 'self' blob:",
-              "manifest-src 'self'",
-            ].join('; '),
+            value:
+              process.env.NODE_ENV === 'development'
+                ? '' // 开发环境不启用 CSP
+                : [
+                    "default-src 'self'",
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.clerk.accounts.dev https://clerk.com https://clerk.jingshen.cc",
+                    "style-src 'self' 'unsafe-inline'",
+                    "img-src 'self' data: blob: https://*.clerk.com https://img.clerk.com https://images.clerk.dev https://clerk.jingshen.cc",
+                    "frame-src 'self' https://accounts.google.com https://*.clerk.accounts.dev https://clerk.jingshen.cc",
+                    "connect-src 'self' https://accounts.google.com https://*.clerk.accounts.dev https://clerk.com https://clerk.jingshen.cc https://api.clerk.dev https://*.allyncs.com https://dashscope.aliyuncs.com wss: ws:",
+                    "form-action 'self'",
+                    "base-uri 'self'",
+                    "font-src 'self' data:",
+                    "media-src 'self'",
+                    "worker-src 'self' blob:",
+                    "manifest-src 'self'",
+                    "object-src 'none'",
+                    "frame-ancestors 'none'",
+                  ].join('; '),
           },
           {
             key: 'X-Frame-Options',
@@ -46,14 +45,13 @@ const nextConfig = {
     ];
   },
 
-  // 重写配置
+  // 保持原有的重写配置
   async rewrites() {
     return [
       {
         source: '/auth/:path*',
         destination: '/auth/:path*',
       },
-      // 添加以下新的重写规则
       {
         source: '/sign-in',
         destination: '/auth/sign-in',
@@ -65,7 +63,7 @@ const nextConfig = {
     ];
   },
 
-  // 重定向配置(新增)
+  // 保持原有的重定向配置
   async redirects() {
     return [
       {
@@ -81,7 +79,7 @@ const nextConfig = {
     ];
   },
 
-  // 图片域名配置
+  // 保持原有的图片域名配置
   images: {
     domains: [
       'accounts.google.com',
