@@ -48,7 +48,6 @@ export default function RootLayout({ children }) {
               },
             },
           }}
-          scriptNonce={nonce}
         >
           <ToastProvider>{children}</ToastProvider>
         </ClerkProvider>
