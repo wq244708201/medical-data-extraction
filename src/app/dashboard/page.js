@@ -1412,9 +1412,12 @@ export default function Home() {
       const makeRequest = async () => {
         try {
           console.log(`尝试调用 API... (第 ${retryCount + 1} 次)`);
-          const response = await fetch(API_CONFIG.url, {
+          // 修改这里的 fetch 调用
+          const response = await fetch('/api/ai', {
             method: 'POST',
-            headers: API_CONFIG.headers,
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
               model: 'qwen-turbo',
               messages: [
@@ -1525,9 +1528,11 @@ ${userPrompt}
 
         console.log(`开始第 ${i + 1} 次尝试处理数据...`);
 
-        const response = await fetch(API_CONFIG.url, {
+        const response = await fetch('/api/ai', {
           method: 'POST',
-          headers: API_CONFIG.headers,
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
             model: 'qwen-turbo',
             messages: [
