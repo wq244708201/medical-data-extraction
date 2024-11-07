@@ -29,13 +29,12 @@ export const middleware = authMiddleware({
 
     // 设置 CSP
     const response = NextResponse.next();
-    const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
     response.headers.set(
       'Content-Security-Policy',
       `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https: 'nonce-${nonce}';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https: 'nonce-*';
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc;
     font-src 'self';
@@ -47,9 +46,6 @@ export const middleware = authMiddleware({
         .replace(/\s{2,}/g, ' ')
         .trim()
     );
-
-    // 将 nonce 值添加到请求头中
-    response.headers.set('x-nonce', nonce);
 
     // 特殊处理：在注册页面进过谷歌认证，登录后已存在用户
     if (auth.userId && isSignUpPage && isAuthCallback) {
