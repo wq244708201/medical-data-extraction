@@ -24,14 +24,16 @@ export const middleware = authMiddleware({
     response.headers.set(
       'Content-Security-Policy',
       `default-src 'self';
-       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.google.com https://*.turnstile.com;
-       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://www.jingshen.cc https://medical-data-extraction.vercel.app https://*.google.com https://*.turnstile.com;
+       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.google.com https://*.cloudflare.com https://*.turnstile.com;
        style-src 'self' 'unsafe-inline';
-       img-src 'self' blob: data: https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc;
+       img-src 'self' blob: data: https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.cloudflare.com;
        font-src 'self';
-       connect-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.turnstile.com;
-       frame-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.turnstile.com;
-       frame-ancestors 'none';`
+       connect-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.cloudflare.com https://*.turnstile.com;
+       frame-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.cloudflare.com https://*.turnstile.com https://*.google.com https://challenges.cloudflare.com http://localhost:3000 https://medical-data-extraction.vercel.app https://jingshen.cc https://www.jingshen.cc;
+       frame-ancestors 'none';
+       form-action 'self';`
+        .replace(/\s+/g, ' ')
+        .trim()
     );
 
     return response;
