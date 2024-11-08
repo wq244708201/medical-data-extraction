@@ -1,16 +1,15 @@
 import { authMiddleware } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
 export const middleware = authMiddleware({
-  // 公共路由配置
+  // 公开路由配置
   publicRoutes: [
     '/',
     '/about',
     '/auth/sign-in',
     '/auth/sign-up',
-    '/auth/sign-in/sso-callback/google',
     '/auth/sign-up/sso-callback/google',
+    '/auth/sign-up/sso-callback',
     '/api/public/(.*)',
     '/pricing',
     '/sign-out',
@@ -18,66 +17,27 @@ export const middleware = authMiddleware({
     '/auth/sign-up/verify-email-address',
     '/api/ai',
   ],
-
   afterAuth(auth, req) {
-    // 获取请求URL和路径信息
-    const requestUrl = new URL(req.url);
-    const isAuthPage = requestUrl.pathname.startsWith('/auth/');
-    const isSignUpPage = requestUrl.pathname.startsWith('/auth/sign-up');
-    const isAuthCallback = requestUrl.pathname.includes('/sso-callback');
-    const isHomePage = requestUrl.pathname === '/';
-
-    // 设置 CSP
     const response = NextResponse.next();
-    const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
+    // 设置 CSP 头
     response.headers.set(
       'Content-Security-Policy',
-      `
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https: 'nonce-${nonce}';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc;
-    font-src 'self';
-    connect-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.turnstile.com;
-    frame-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.turnstile.com;
-    form-action 'self';
-    frame-ancestors 'none';
-  `
-        .replace(/\s{2,}/g, ' ')
-        .trim()
+      `default-src 'self';
+       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.google.com https://*.turnstile.com;
+       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://www.jingshen.cc https://medical-data-extraction.vercel.app https://*.google.com https://*.turnstile.com;
+       style-src 'self' 'unsafe-inline';
+       img-src 'self' blob: data: https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc;
+       font-src 'self';
+       connect-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.turnstile.com;
+       frame-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.turnstile.com;
+       frame-ancestors 'none';`
     );
-
-    // 将 nonce 值添加到请求头中
-    response.headers.set('x-nonce', nonce);
-
-    // 特殊处理：在注册页面进过谷歌认证，登录后已存在用户
-    if (auth.userId && isSignUpPage && isAuthCallback) {
-      const dashboard = new URL('/dashboard', req.url);
-      return NextResponse.redirect(dashboard);
-    }
-
-    // 用户未登录且访问的路由需认证的路由时，重定向到登录页面
-    if (!auth.userId && !auth.isPublicRoute) {
-      const signInUrl = new URL('/auth/sign-in', req.url);
-      signInUrl.searchParams.set('redirect_url', requestUrl.href);
-      return NextResponse.redirect(signInUrl);
-    }
-
-    // 已登录用户访问首页或认证页面时，重定向到 dashboard
-    if (auth.userId && (isHomePage || isAuthPage)) {
-      const dashboard = new URL('/dashboard', req.url);
-      return NextResponse.redirect(dashboard);
-    }
 
     return response;
   },
 });
 
-// 需要忽略的路由 - 完全排除中间件检查
 export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|public|.*).*)/',
-    '/api/((?!public).*)/',
-  ],
+  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
 };
