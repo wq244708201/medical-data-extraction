@@ -28,12 +28,12 @@ export const middleware = authMiddleware({
         script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.google.com https://*.cloudflare.com https://*.turnstile.com https://challenges.cloudflare.com;
         style-src 'self' 'unsafe-inline' https://*.clerk.com;
         img-src 'self' blob: data: https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.cloudflare.com;
-        font-src 'self' https://*.clerk.com;
+        font-src 'self' https://*.clerk.com data:;
         connect-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.cloudflare.com https://*.turnstile.com https://challenges.cloudflare.com;
-        frame-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.cloudflare.com https://*.turnstile.com https://*.google.com https://challenges.cloudflare.com http://localhost:3000 https://medical-data-extraction.vercel.app https://jingshen.cc https://www.jingshen.cc;
-        worker-src 'self' blob: https://*.cloudflare.com;
-        child-src 'self' blob: https://*.cloudflare.com https://challenges.cloudflare.com;
-        frame-ancestors 'none';
+        frame-src 'self' https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.google.com https://*.cloudflare.com https://challenges.cloudflare.com https://turnstile.cloudflare.com http://localhost:3000 https://medical-data-extraction.vercel.app https://jingshen.cc https://www.jingshen.cc;
+        worker-src 'self' blob:;
+        child-src 'self' blob: https://*.cloudflare.com;
+        frame-ancestors 'self';
         form-action 'self' https://*.clerk.com https://clerk.jingshen.cc;
         base-uri 'self';
         upgrade-insecure-requests;
@@ -43,7 +43,7 @@ export const middleware = authMiddleware({
     );
 
     // 添加额外的安全头
-    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
