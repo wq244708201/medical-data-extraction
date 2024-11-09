@@ -25,15 +25,37 @@ export default authMiddleware({
     response.headers.set(
       'Content-Security-Policy',
       `
-        default-src 'self' https://*.clerk.com https://*.clerk.dev https://*.google.com;
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.dev https://*.google.com https://*.cloudflare.com;
-        style-src 'self' 'unsafe-inline' https://*.clerk.com https://fonts.googleapis.com;
-        img-src 'self' blob: data: https://*.clerk.com https://*.clerk.dev https://*.google.com;
-        font-src 'self' data: https://*.clerk.com https://fonts.gstatic.com;
-        connect-src 'self' https://*.clerk.com https://*.clerk.dev https://*.google.com;
-        frame-src 'self' https://*.clerk.com https://*.clerk.dev https://*.google.com https://accounts.google.com;
-        form-action 'self' https://*.clerk.com https://accounts.google.com;
-      `
+    default-src 'self' https://*.clerk.com https://*.clerk.dev https://*.google.com https://vercel.live;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' 
+      https://*.clerk.com 
+      https://*.clerk.dev 
+      https://*.google.com 
+      https://*.cloudflare.com 
+      https://vercel.live
+      https://*.vercel.app;
+    connect-src 'self' 
+      https://*.clerk.com 
+      https://*.clerk.dev 
+      https://*.google.com 
+      https://*.cloudflare.com 
+      https://vercel.live
+      wss://*.vercel.live
+      https://*.vercel.app;
+    style-src 'self' 'unsafe-inline' https://*.clerk.com https://fonts.googleapis.com;
+    img-src 'self' blob: data: 
+      https://*.clerk.com 
+      https://*.clerk.dev 
+      https://*.google.com 
+      https://vercel.live;
+    font-src 'self' data: https://*.clerk.com https://fonts.gstatic.com;
+    frame-src 'self' 
+      https://*.clerk.com 
+      https://*.clerk.dev 
+      https://*.google.com 
+      https://accounts.google.com 
+      https://vercel.live;
+    form-action 'self' https://*.clerk.com https://accounts.google.com;
+  `
         .replace(/\s+/g, ' ')
         .trim()
     );
