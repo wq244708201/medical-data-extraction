@@ -27,22 +27,22 @@ export default authMiddleware({
     response.headers.set(
       'Content-Security-Policy',
       `
-        default-src 'self' https://*.clerk.com https://*.clerk.accounts.dev;
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.accounts.dev https://*.google.com https://*.cloudflare.com;
-        style-src 'self' 'unsafe-inline' https://*.clerk.com https://fonts.googleapis.com;
-        img-src 'self' blob: data: https://*.clerk.com https://*.googleusercontent.com;
-        font-src 'self' data: https://fonts.gstatic.com;
-        frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://accounts.google.com https://challenges.cloudflare.com;
-        connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://accounts.google.com wss://*.clerk.accounts.dev https://*.google.com;
-        form-action 'self' https://*.clerk.com https://accounts.google.com;
-        media-src 'self';
-        worker-src 'self' blob:;
-        child-src 'self' blob:;
-        object-src 'none';
-        frame-ancestors 'self';
-        base-uri 'self';
-        upgrade-insecure-requests;
-      `
+    default-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://*.jingshen.cc https://*.accounts.dev;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.accounts.dev https://*.google.com https://*.cloudflare.com https://*.vercel.app https://*.vercel.live https://vercel.live https://clerk.jingshen.cc https://*.jingshen.cc https://*.accounts.dev;
+    style-src 'self' 'unsafe-inline' https://*.clerk.com https://fonts.googleapis.com https://*.jingshen.cc https://*.accounts.dev;
+    img-src 'self' blob: data: https://*.clerk.com https://*.googleusercontent.com https://*.vercel.app https://*.jingshen.cc https://*.accounts.dev https://img.clerk.com https://images.clerk.dev;
+    font-src 'self' data: https://fonts.gstatic.com;
+    frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://accounts.google.com https://*.vercel.live https://clerk.jingshen.cc https://*.jingshen.cc https://*.accounts.dev;
+    connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://accounts.google.com wss://*.clerk.accounts.dev https://*.google.com https://*.vercel.app https://*.vercel.live wss://*.vercel.live https://vercel.live https://clerk.jingshen.cc https://*.jingshen.cc https://*.accounts.dev wss://*.accounts.dev;
+    form-action 'self' https://*.clerk.com https://accounts.google.com https://*.accounts.dev;
+    media-src 'self';
+    worker-src 'self' blob:;
+    child-src 'self' blob:;
+    object-src 'none';
+    frame-ancestors 'self';
+    base-uri 'self';
+    upgrade-insecure-requests;
+  `
         .replace(/\s+/g, ' ')
         .trim()
     );
