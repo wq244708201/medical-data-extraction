@@ -21,6 +21,8 @@ export default function SignInPage() {
           signUpUrl="/auth/sign-up"
           redirectUrl="/dashboard"
           afterSignInUrl="/dashboard"
+          afterSignOutUrl="/"
+          signInUrl="/auth/sign-in"
           localization={{
             signIn: {
               title: '登录账号',
@@ -34,10 +36,8 @@ export default function SignInPage() {
             dividerText: '或',
             formFieldLabel_emailAddress: '邮箱地址',
             formFieldLabel_password: '密码',
-            signIn: {
-              actionText: '还没有账号？',
-              modalActionText: '立即注册',
-            },
+            actionText: '还没有账号？',
+            modalActionText: '立即注册',
           }}
         />
       </div>

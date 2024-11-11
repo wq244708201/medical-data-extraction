@@ -10,6 +10,8 @@ export default function SignUpPage() {
           routing="path"
           signInUrl="/auth/sign-in"
           redirectUrl="/dashboard"
+          afterSignUpUrl="/dashboard"
+          afterSignInUrl="/dashboard"
           appearance={{
             elements: {
               formButtonPrimary:
@@ -19,7 +21,6 @@ export default function SignUpPage() {
                 'w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50',
             },
           }}
-          afterSignUpUrl="/auth/sign-up/verify-email-address"
           localization={{
             signUp: {
               title: '创建账号',
@@ -28,15 +29,13 @@ export default function SignUpPage() {
               alternateMethod: '其他注册方式',
             },
             socialButtonsBlockButton: {
-              google: '使用Google账号登录',
+              google: '使用Google账号注册',
             },
             dividerText: '或',
             formFieldLabel_emailAddress: '邮箱地址',
             formFieldLabel_password: '密码',
-            signIn: {
-              actionText: '已有账号？',
-              modalActionText: '立即登录',
-            },
+            actionText: '已有账号？',
+            modalActionText: '立即登录',
           }}
         />
       </div>
