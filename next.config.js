@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // serverActions: true, // 删除这行或改为以下配置
-  },
   async headers() {
     return [
       {
@@ -12,27 +9,45 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.cloudflare.com https://*.turnstile.com https://*.clerk.accounts.dev",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc",
-              "font-src 'self'",
-              "connect-src 'self' https://*.google.com https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc https://*.clerk.accounts.dev https://*.allyncs.com https://*.turnstile.com wss: ws:",
-              "frame-src 'self' https://*.google.com https://*.clerk.com https://*.clerk.dev https://clerk.jingshen.cc",
-              "form-action 'self'",
-              "media-src 'self' data:",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.accounts.dev https://*.google.com https://*.cloudflare.com https://*.vercel.app",
+              "style-src 'self' 'unsafe-inline' https://*.clerk.com https://fonts.googleapis.com",
+              "img-src 'self' blob: data: https://*.clerk.com https://*.googleusercontent.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://accounts.google.com",
+              "connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://accounts.google.com wss://*.clerk.accounts.dev https://*.google.com",
+              "form-action 'self' https://*.clerk.com https://accounts.google.com",
+              "media-src 'self'",
               "worker-src 'self' blob:",
               "manifest-src 'self'",
               "object-src 'none'",
               "frame-ancestors 'none'",
+              "base-uri 'self'",
+              'upgrade-insecure-requests',
             ].join('; '),
           },
           {
             key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
           },
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
           },
         ],
       },
@@ -70,11 +85,12 @@ const nextConfig = {
   },
   images: {
     domains: [
-      'accounts.google.com',
       'img.clerk.com',
-      'clerk.jingshen.cc',
       'images.clerk.dev',
+      'accounts.google.com',
+      'lh3.googleusercontent.com',
       'medical-data-extraction.vercel.app',
+      'jingshen.cc',
     ],
   },
 };
