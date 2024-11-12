@@ -1,69 +1,63 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
 
+// 移除认证相关的导入，简化处理逻辑
 export async function POST(req) {
   try {
-    // 验证用户身份
-    const { userId } = auth();
-    if (!userId) {
-      return NextResponse.json({ error: '未授权的访问' }, { status: 401 });
-    }
-
+    // 获取请求数据
     const body = await req.json();
 
-    // 基本的输入验证
-    if (!body || !body.messages) {
+    if (!body?.messages) {
       return NextResponse.json({ error: '无效的请求数据' }, { status: 400 });
     }
 
-    // 添加重试逻辑
-    let retries = 3;
-    let response;
+    console.log('Request body:', body);
 
-    while (retries > 0) {
-      try {
-        response = await fetch(
-          'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-          }
-        );
+    // 获取 API 密钥
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return NextResponse.json(data);
-      } catch (error) {
-        retries -= 1;
-        if (retries === 0) {
-          throw error;
-        }
-        // 等待一段时间后重试
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+    if (!apiKey) {
+      console.error('Missing API key');
+      return NextResponse.json({ error: '服务器配置错误' }, { status: 500 });
     }
-  } catch (error) {
-    console.error('API Error:', error);
 
-    // 更详细的错误处理
-    const errorMessage =
-      error.response?.data?.error || error.message || '服务器内部错误';
-    const statusCode = error.response?.status || 500;
+    // 调用 AI 服务
+    const response = await fetch(
+      'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    // 处理 AI 服务响应
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('AI API Error:', {
+        status: response.status,
+        error: errorData,
+      });
+
+      return NextResponse.json(
+        { error: '服务调用失败', details: errorData },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Request failed:', error);
 
     return NextResponse.json(
       {
-        error: errorMessage,
-        timestamp: new Date().toISOString(),
-        requestId: Math.random().toString(36).substring(7),
+        error: '服务器内部错误',
+        message: error.message,
       },
-      { status: statusCode }
+      { status: 500 }
     );
   }
 }

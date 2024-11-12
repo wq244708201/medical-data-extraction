@@ -1,9 +1,12 @@
 import { authMiddleware } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
 
+// 固定格式，用来排除 _ 开头和带扩展名的路径
+const PROTECTED_PATHS = ['/dashboard', '/api/ai'];
+
 export default authMiddleware({
-  publicRoutes: ['/', '/about', '/auth/*', '/api/*'],
-  ignoredRoutes: ['/api/webhook'],
+  // 配置公开路由
+  publicRoutes: ['/', '/about', '/auth(.*)'],
 
   beforeAuth: req => {
     const url = req.nextUrl;
@@ -13,41 +16,23 @@ export default authMiddleware({
     }
   },
 
+  // 认证检查
   afterAuth(auth, req) {
-    if (!auth.userId && !auth.isPublicRoute) {
+    const url = req.nextUrl;
+    const isProtectedPath = PROTECTED_PATHS.some(path =>
+      url.pathname.startsWith(path)
+    );
+
+    // 如果是受保护的路径且用户未登录
+    if (isProtectedPath && !auth.userId) {
       const signInUrl = new URL('/auth/sign-in', req.url);
-      signInUrl.searchParams.set('redirect_url', req.url);
+      signInUrl.searchParams.set('redirect_url', url.pathname);
       return NextResponse.redirect(signInUrl);
     }
 
     const response = NextResponse.next();
-    const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
-    // 更新的 CSP 配置
-    response.headers.set(
-      'Content-Security-Policy',
-      `
-    default-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://*.jingshen.cc https://*.accounts.dev https://*.cloudflare.com;
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.com https://*.clerk.accounts.dev https://*.google.com https://*.cloudflare.com https://*.vercel.app https://*.vercel.live https://vercel.live https://clerk.jingshen.cc https://*.jingshen.cc https://*.accounts.dev https://challenges.cloudflare.com;
-    style-src 'self' 'unsafe-inline' https://*.clerk.com https://fonts.googleapis.com https://*.jingshen.cc https://*.accounts.dev;
-    img-src 'self' blob: data: https://*.clerk.com https://*.googleusercontent.com https://*.vercel.app https://*.jingshen.cc https://*.accounts.dev https://img.clerk.com https://images.clerk.dev https://*.cloudflare.com;
-    font-src 'self' data: https://fonts.gstatic.com;
-    frame-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://accounts.google.com https://*.vercel.live https://clerk.jingshen.cc https://*.jingshen.cc https://*.accounts.dev https://challenges.cloudflare.com https://*.cloudflare.com;
-    connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://accounts.google.com wss://*.clerk.accounts.dev https://*.google.com https://*.vercel.app https://*.vercel.live wss://*.vercel.live https://vercel.live https://clerk.jingshen.cc https://*.jingshen.cc https://*.accounts.dev wss://*.accounts.dev https://*.cloudflare.com;
-    form-action 'self' https://*.clerk.com https://accounts.google.com https://*.accounts.dev;
-    media-src 'self';
-    worker-src 'self' blob: https://*.cloudflare.com;
-    child-src 'self' blob: https://*.cloudflare.com;
-    object-src 'none';
-    frame-ancestors 'self';
-    base-uri 'self';
-    upgrade-insecure-requests;
-  `
-        .replace(/\s+/g, ' ')
-        .trim()
-    );
-
-    // 安全相关的其他响应头
+    // 安全响应头设置
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -65,6 +50,7 @@ export default authMiddleware({
   },
 });
 
+// 更新 matcher 配置
 export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
+  matcher: ['/((?!.+\\.[\\w]+$|_next|favicon.ico).*)'],
 };
