@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { XCircle } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
-import { APP_VERSION } from '@/config/version';
+import { APP_VERSION } from '../../config/version';
 import { UserButton } from '../../components/auth/UserButton';
 const containsTestisInfo = text => {
   if (!text) return false;
