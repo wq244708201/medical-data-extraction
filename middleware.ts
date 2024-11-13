@@ -1,10 +1,10 @@
 import { authMiddleware } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
 
-// 固定格式，用来排除 _ 开头和带扩展名的路径
+// 受保护的路径配置
 const PROTECTED_PATHS = ['/dashboard', '/api/ai'];
 
-// 添加允许的域名列表
+// 允许的域名列表
 const ALLOWED_ORIGINS = [
   'https://jingshen.cc',
   'https://www.jingshen.cc',
@@ -14,8 +14,13 @@ const ALLOWED_ORIGINS = [
 ];
 
 export default authMiddleware({
-  // 配置公开路由
-  publicRoutes: ['/', '/about', '/auth(.*)'],
+  // 公开路由配置
+  publicRoutes: [
+    '/',
+    '/about',
+    '/auth(.*)',
+    '/api/webhook(.*)', // 添加 webhook 路由
+  ],
 
   beforeAuth: req => {
     const url = req.nextUrl;
@@ -26,7 +31,6 @@ export default authMiddleware({
     }
   },
 
-  // 认证检查
   afterAuth(auth, req) {
     const url = req.nextUrl;
     const origin = req.headers.get('origin');
@@ -36,7 +40,7 @@ export default authMiddleware({
       url.pathname.startsWith(path)
     );
 
-    // 如果是受保护的路径且用户未登录
+    // 未登录用户访问受保护路径时重定向到登录页
     if (isProtectedPath && !auth.userId) {
       const signInUrl = new URL('/auth/sign-in', req.url);
       signInUrl.searchParams.set('redirect_url', url.pathname);
@@ -46,62 +50,64 @@ export default authMiddleware({
     const response = NextResponse.next();
 
     // CORS 配置
-    if (origin && ALLOWED_ORIGINS.includes(origin)) {
-      response.headers.set('Access-Control-Allow-Origin', origin);
-      response.headers.set('Access-Control-Allow-Credentials', 'true');
-      response.headers.set(
-        'Access-Control-Allow-Methods',
-        'GET, POST, PUT, DELETE, OPTIONS'
-      );
-      response.headers.set(
-        'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, X-Requested-With'
-      );
+    if (origin) {
+      if (ALLOWED_ORIGINS.includes(origin)) {
+        response.headers.set('Access-Control-Allow-Origin', origin);
+        response.headers.set('Access-Control-Allow-Credentials', 'true');
+        response.headers.set(
+          'Access-Control-Allow-Methods',
+          'GET, POST, PUT, DELETE, OPTIONS'
+        );
+        response.headers.set(
+          'Access-Control-Allow-Headers',
+          'Content-Type, Authorization, X-Requested-With'
+        );
+      }
     }
 
-    // 安全响应头设置
-    response.headers.set('X-Frame-Options', 'SAMEORIGIN'); // 修改为 SAMEORIGIN
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set(
-      'Permissions-Policy',
-      'camera=(), microphone=(), geolocation=()'
-    );
-    response.headers.set('X-XSS-Protection', '1; mode=block');
-    response.headers.set(
-      'Strict-Transport-Security',
-      'max-age=31536000; includeSubDomains'
-    );
+    // 基础安全头设置
+    const securityHeaders = {
+      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+      'X-XSS-Protection': '1; mode=block',
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    };
 
-    // 添加 Content-Security-Policy
-    response.headers.set(
-      'Content-Security-Policy',
-      `
-        default-src 'self' ${ALLOWED_ORIGINS.join(' ')};
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.jingshen.cc https://accounts.clerk.dev;
-        style-src 'self' 'unsafe-inline';
-        img-src 'self' data: https: blob:;
-        font-src 'self' data:;
-        frame-src 'self' ${ALLOWED_ORIGINS.join(' ')};
-        connect-src 'self' ${ALLOWED_ORIGINS.join(' ')} https://api.clerk.dev https://clerk.jingshen.cc https://accounts.clerk.dev;
-      `
-        .replace(/\s+/g, ' ')
-        .trim()
-    );
+    // 设置安全头
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+
+    // Content Security Policy 配置
+    const cspDirectives = [
+      "default-src 'self' " + ALLOWED_ORIGINS.join(' '),
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.jingshen.cc https://accounts.clerk.dev https://va.vercel-scripts.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https: blob:",
+      "font-src 'self' data:",
+      "frame-src 'self' " + ALLOWED_ORIGINS.join(' '),
+      "connect-src 'self' " +
+        ALLOWED_ORIGINS.join(' ') +
+        ' https://*.clerk.dev https://va.vercel-scripts.com',
+      "media-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+      'upgrade-insecure-requests',
+    ];
+
+    response.headers.set('Content-Security-Policy', cspDirectives.join('; '));
 
     return response;
   },
 
-  // 添加调试模式
   debug: process.env.NODE_ENV === 'development',
 });
 
-// 更新 matcher 配置，确保包含所有需要的路由
+// 更新的 matcher 配置
 export const config = {
-  matcher: [
-    '/((?!.+\\.[\\w]+$|_next|favicon.ico).*)',
-    '/',
-    '/(api|trpc)(.*)',
-    '/dashboard(.*)',
-  ],
+  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
 };

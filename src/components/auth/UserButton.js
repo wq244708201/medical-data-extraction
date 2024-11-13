@@ -28,8 +28,7 @@ export function UserButton() {
         userProfile: '个人资料',
       }}
       showName={true}
-      userProfileMode="navigation"
-      userProfileUrl="/dashboard/profile"
+      userProfileMode="modal" // 改为 modal 模式，这样会直接打开 Clerk 的个人资料模态框
     />
   );
 }
