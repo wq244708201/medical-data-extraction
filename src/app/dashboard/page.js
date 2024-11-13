@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { XCircle } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { APP_VERSION } from '@/config/version';
 import { UserButton } from '../../components/auth/UserButton';
 const containsTestisInfo = text => {
   if (!text) return false;
@@ -1817,7 +1818,7 @@ ${userPrompt}
               <h1 className="text-3xl font-bold text-gray-900">
                 MediData AI
                 <span className="ml-2 text-sm font-normal text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                  医数智能 v1.2.0
+                  医数智能 {APP_VERSION}
                 </span>
               </h1>
               <p className="text-gray-600 mt-1">智能医疗数据提取与分析平台</p>
